@@ -1,6 +1,11 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#ifndef ETHERTYPE_IP
+#define ETHERTYPE_IP		0x0800	/* IP protocol */
+#endif
+#define ETHERTYPE_ARP 0x0806
+
 /* Ethernet ARP packet from RFC 826 */
 struct arp_hdr {
 	uint16_t hw_type;   /* Format of hardware address */
@@ -32,7 +37,7 @@ struct ip_hdr {
     uint8_t    ttl;         // Time to Live -> to avoid loops, we will decrement
     uint8_t    proto;       // Identificator al protocolului encapsulat (e.g. ICMP)
     uint16_t   checksum;    // checksum     -> Since we modify TTL,
-    uint32_t   source_addr; // Adresa IP sursă  
+    uint32_t   source_addr; // Adresa IP sursă
     uint32_t   dest_addr;   // Adresa IP destinație
 };
 

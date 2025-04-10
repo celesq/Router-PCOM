@@ -1,0 +1,7 @@
+{
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "files.associations": {
+        "protocols.h": "c",
+        "lib.h": "c"
+    }
+}
