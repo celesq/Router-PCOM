@@ -323,7 +323,7 @@ def validate_test_results(results):
 
 def should_skip(testname):
     if static_arp():
-        return testname in {"router_arp_reply", "router_arp_request"}
+        return testname in {"aaaa"}
 
     return False
 

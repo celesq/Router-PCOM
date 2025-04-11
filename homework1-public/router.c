@@ -3,6 +3,7 @@
 #include "lib.h"
 #include <arpa/inet.h>
 #include <string.h>
+#include <stdint.h>
 
 #define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
 
@@ -11,19 +12,30 @@ struct route_table_entry* rtable;
 struct arp_table_entry *arptable;
 int rtable_len, arptable_len;
 
-struct route_table_entry* find_best_route(uint32_t ip_dest) {
+struct route_table_entry *find_best_route(uint32_t ip_dest) {
+	struct route_table_entry *best = NULL;
+	int max_prefix_len = -1;
+
 	for (int i = 0; i < rtable_len; i++) {
-		struct route_table_entry *entry = &rtable[i];
-		uint32_t prefix = entry->prefix;
-		uint32_t mask = entry->mask;
+		uint32_t prefix = rtable[i].prefix;
+		uint32_t mask = rtable[i].mask;
 		uint32_t result = ip_dest & mask;
-		if (result == prefix)
-			return entry;
+
+		if (result == (prefix & mask) ) {
+			int prefix_len = __builtin_popcount(ntohl(mask));
+			if (prefix_len > max_prefix_len) {
+				max_prefix_len = prefix_len;
+				best = &rtable[i];
+			}
+		}
 	}
-	return NULL;
+	return best;
 }
 
 uint8_t* find_mac_adress_arp(struct route_table_entry *next, struct ether_hdr *ether_hdr, struct ip_hdr *ip_hdr) {
+	if (next->next_hop == ip_hdr->dest_addr) {
+		return ether_hdr->ethr_dhost;
+	}
 	for (int i = 0; i < arptable_len; i++) {
 		struct arp_table_entry *entry = &arptable[i];
 		if (entry->ip == next->next_hop) {
@@ -31,9 +43,10 @@ uint8_t* find_mac_adress_arp(struct route_table_entry *next, struct ether_hdr *e
 		}
 	}
 	//query
-	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr));
+	uint16_t ip_len = ntohs(ip_hdr->tot_len);
+	char *buf = malloc(sizeof(struct ether_hdr) + ip_len);
 	memcpy(buf, ether_hdr, sizeof(struct ether_hdr));
-	memcpy(buf + sizeof(struct ether_hdr), ip_hdr, sizeof(struct ip_hdr));
+	memcpy(buf + sizeof(struct ether_hdr), ip_hdr, ip_len);
 	queue_enq(q, buf);
 
 	struct ether_hdr *ether_packet = malloc(sizeof(struct ether_hdr));
@@ -53,7 +66,7 @@ uint8_t* find_mac_adress_arp(struct route_table_entry *next, struct ether_hdr *e
 	memcpy(arp_packet->shwa, interface_mac, 6);
 	arp_packet->sprotoa = inet_addr(get_interface_ip(next->interface));
 	memset(arp_packet->thwa , 0 ,6);
-	arp_packet->tprotoa = htonl(next->next_hop);
+	arp_packet->tprotoa = next->next_hop;
 
 	char *buff = malloc(sizeof(struct ether_hdr) + sizeof(struct arp_hdr));
 	memcpy(buff, ether_packet, sizeof(struct ether_hdr));
@@ -115,7 +128,7 @@ void send_error_icmp (struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr, int ty
 
 	memcpy(ether_hdr->ethr_dhost, mac, 6);
 
-	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr) + sizeof(struct icmp_hdr));
+	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr) + sizeof(struct icmp_hdr) + 28);
 	char *original_payload = (char *)original_ip + sizeof(struct ip_hdr);
 	memcpy(buf, ether_hdr, sizeof(struct ether_hdr));
 	memcpy(buf + sizeof(struct ether_hdr), ip_hdr, sizeof(struct ip_hdr));
@@ -134,33 +147,31 @@ void send_error_icmp (struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr, int ty
 	free(icmp_hdr);
 	free(original_ip);
 	free(original_ether);
+	free(mac);
 }
 
 
-void process_ip_packet(struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr) {
+void send_icmp_echo_reply(struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr, int interface) {
 
-	uint16_t original_checksum = ntohs(ip_hdr->checksum);
+	struct icmp_hdr *icmp_hdr = (struct icmp_hdr *)((char *)ip_hdr + sizeof(struct ip_hdr));
+	icmp_hdr->mcode = 0;
+	icmp_hdr->mtype = 0;
+	int icmp_len = ntohs(ip_hdr->tot_len) - sizeof(struct ip_hdr);
+
+	uint8_t *aux = malloc(6 * sizeof(uint8_t));
+	memcpy(aux, ether_hdr->ethr_shost, 6);
+	memcpy(ether_hdr->ethr_shost, ether_hdr->ethr_dhost, 6);
+	memcpy(ether_hdr->ethr_dhost, aux, 6);
+
+	uint32_t aux2 = ip_hdr->dest_addr;
+	ip_hdr->dest_addr = ip_hdr->source_addr;
+	ip_hdr->source_addr = aux2;
 	ip_hdr->checksum = 0;
-	uint16_t new_checksum = checksum((uint16_t*)ip_hdr, sizeof(struct ip_hdr));
+	ip_hdr->tot_len = htons(sizeof(struct ip_hdr) + icmp_len);
+	ip_hdr->checksum = checksum((uint16_t*)(ip_hdr), sizeof(struct ip_hdr));
 
-	if (original_checksum != new_checksum) {
-		printf("Bad checksum\n");
-		printf("%d , %d\n", original_checksum, new_checksum);
-		return;
-	}
-
-	if (ip_hdr->ttl <= 1) {
-		//treb trimis catre emitator time excedeed
-		send_error_icmp(ip_hdr, ether_hdr, 3);
-		printf("TTL\n");
-		return;
-	}
-	ip_hdr->ttl--;
-
-
-	ip_hdr->checksum = htons(new_checksum);
-
-	struct route_table_entry *next = find_best_route(ip_hdr->dest_addr);
+	//find next-hop
+	struct route_table_entry *next = find_best_route(ip_hdr->source_addr);
 	if (!next) {
 		printf("Destination unreachable\n");
 		return;
@@ -174,13 +185,82 @@ void process_ip_packet(struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr) {
 	get_interface_mac(next->interface, interface_mac);
 	memcpy(ether_hdr->ethr_shost, interface_mac, 6);
 
+	memcpy(ether_hdr->ethr_dhost, mac, 6);
+
+	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr) + icmp_len);
+
+	memcpy(buf, ether_hdr, sizeof(struct ether_hdr));
+	memcpy(buf + sizeof(struct ether_hdr), ip_hdr, sizeof(struct ip_hdr));
+	memcpy(buf + sizeof(struct ether_hdr) + sizeof(struct ip_hdr), (char*)ip_hdr + sizeof(struct ip_hdr), icmp_len);
+
+	struct icmp_hdr *checksum_icmp = (struct icmp_hdr*) (buf + sizeof(struct ether_hdr) + sizeof(struct ip_hdr));
+	checksum_icmp->check = 0;
+	checksum_icmp->check = checksum((uint16_t*)checksum_icmp, icmp_len);
+
+	send_to_link(sizeof(struct ether_hdr) + sizeof(struct ip_hdr) + icmp_len, buf, next->interface);
+
+	free(mac);
+	free(aux);
+	free(interface_mac);
+	free(buf);
+}
+
+void process_ip_packet(struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr) {
+
+
+	uint16_t original_checksum = ntohs(ip_hdr->checksum);
+	ip_hdr->checksum = 0;
+	uint16_t new_checksum = checksum((uint16_t*)ip_hdr, sizeof(struct ip_hdr));
+
+	printf("Source IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr->source_addr));
+	printf("Dest IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr->dest_addr));
+
+	if (original_checksum != new_checksum) {
+		printf("Bad checksum\n");
+		printf("%d , %d\n", original_checksum, new_checksum);
+		return;
+	}
+
+	if (ip_hdr->ttl <= 1) {
+		//treb trimis catre emitator time excedeed
+		send_error_icmp(ip_hdr, ether_hdr, 11);
+		printf("TTL\n");
+		return;
+	}
+	ip_hdr->ttl--;
+
+
+	ip_hdr->checksum = htons(checksum((uint16_t*)ip_hdr, sizeof(struct ip_hdr)));
+	printf("Ok, processing IP packet\n");
+
+	struct route_table_entry *next = find_best_route(ip_hdr->dest_addr);
+	if (!next) {
+		printf("Destination unreachable\n");
+		send_error_icmp(ip_hdr, ether_hdr, 3);
+		return;
+	}
+
+	uint8_t *mac = find_mac_adress_arp(next, ether_hdr, ip_hdr);
+	if (!mac) {
+		return;
+		printf("Could not find mac address for arp\n");
+	}
+	printf("MAC SOURCE: %02x:%02x:%02x:%02x:%02x:%02x\n",ether_hdr->ethr_shost[0], ether_hdr->ethr_shost[1], ether_hdr->ethr_shost[2], ether_hdr->ethr_shost[3], ether_hdr->ethr_shost[4], ether_hdr->ethr_shost[5]);
+	printf("MAC destination: %02x:%02x:%02x:%02x:%02x:%02x\n",mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	uint8_t *interface_mac = malloc (6 * sizeof (uint8_t));
+	get_interface_mac(next->interface, interface_mac);
+	memcpy(ether_hdr->ethr_shost, interface_mac, 6);
+
 	memcpy(ether_hdr->ethr_dhost ,mac, 6);
 
-	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr));
+	uint16_t ip_len = ntohs(ip_hdr->tot_len);
+
+	char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ether_hdr));
 	memcpy(buf, ether_hdr, sizeof(struct ether_hdr));
 	memcpy(buf + sizeof(struct ether_hdr), ip_hdr, sizeof(struct ip_hdr));
 
-	send_to_link(sizeof(struct ether_hdr) + sizeof(struct ip_hdr), buf, next->interface);
+	send_to_link(sizeof(struct ether_hdr) + ip_len, buf, next->interface);
 
 	free(interface_mac);
 	free(buf);
@@ -255,10 +335,11 @@ void process_arp_reply(struct arp_hdr* arp_hdr, size_t router_interface) {
 
 			memcpy(ether_hdr->ethr_dhost, arp_hdr->shwa, 6);
 
-			char *buf = malloc(sizeof(struct ether_hdr) + sizeof(struct ip_hdr));
+			uint16_t ip_len = ntohs(ip_hdr->tot_len);
+			char *buf = malloc(sizeof(struct ether_hdr) + ip_len);
 			memcpy(buf, ether_hdr, sizeof(struct ether_hdr));
-			memcpy(buf + sizeof(struct ether_hdr), ip_hdr, sizeof(struct ip_hdr));
-			send_to_link(sizeof(struct ether_hdr) + sizeof(struct ip_hdr), buf, router_interface);
+			memcpy(buf + sizeof(struct ether_hdr), ip_hdr, ip_len);
+			send_to_link(sizeof(struct ether_hdr) + ip_len, buf, router_interface);
 			free(buf);
 		} else {
 			queue_enq(temp , packet);
@@ -333,30 +414,44 @@ int main(int argc, char *argv[])
 		get_interface_mac(interface, interface_mac);
 		uint32_t ip_uint = inet_addr((get_interface_ip(interface)));
 
-		if ((memcmp(ether_hdr->ethr_dhost, interface_mac, 6) != 0) && (memcmp(ether_hdr->ethr_dhost, BROADCAST_MAC, 6) != 0)) {
-			printf("Packet has wrong destination\n");
-			free(interface_mac);
-			continue;
-		}
-		free(interface_mac);
-
 		if (ntohs(ether_hdr->ethr_type) != ETHERTYPE_IP && ntohs(ether_hdr->ethr_type) != ETHERTYPE_ARP) {
-			printf("Ignored non IPv4 packet\n");
+			printf("Ignored non IPv4 or ARP packet\n");
 			continue;
 		}
 
 		if (ntohs(ether_hdr->ethr_type) == ETHERTYPE_ARP) {
+			if ((memcmp(ether_hdr->ethr_dhost, interface_mac, 6) != 0) && (memcmp(ether_hdr->ethr_dhost, BROADCAST_MAC, 6) != 0)) {
+				printf("ARP Packet has wrong destination\n");
+				free(interface_mac);
+				continue;
+			}
+		}
+		free(interface_mac);
+
+		if (ntohs(ether_hdr->ethr_type) == ETHERTYPE_ARP) {
 			struct arp_hdr *arp_hdr = (struct arp_hdr*) (buf + sizeof(struct ether_hdr));
+			printf("Processing ARP packet\n");
 			process_arp_packet(arp_hdr, interface);
 
 		} else {
 			if (ip_hdr->dest_addr == ip_uint) {
-				continue;
-				process_ip_packet(ip_hdr, ether_hdr);
 				//pachetul e pt mine
-
+				if (ip_hdr->proto == IPPROTO_ICMP) {
+					struct icmp_hdr *icmp_hdr = (struct icmp_hdr *)((char *)ip_hdr + sizeof(struct ip_hdr));
+					if (icmp_hdr->mtype == 8) {
+						//echo request
+						send_icmp_echo_reply(ip_hdr, ether_hdr, interface);
+						printf("Processing ICMP echo request\n");
+					}
+				} else {
+					printf("Recieved ICMP that's not for me, dropping\n");
+					process_ip_packet(ip_hdr, ether_hdr);
+					continue;
+				}
+				continue;
 			} else {
 				process_ip_packet(ip_hdr, ether_hdr);
+				printf("Processing IP packet\n");
 			}
 		}
 
