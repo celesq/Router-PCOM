@@ -1,0 +1,189 @@
+Setting up interface: rr-0-1
+Setting up interface: r-0
+Setting up interface: r-1
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Processing ARP packet
+ARP Packet has wrong destination
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.2.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:02
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.2.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:02
+Processing IP packet
+Source IP: 192.168.2.2
+Dest IP: 192.168.1.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:02
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.1.2
+Dest IP: 192.168.2.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:02
+Processing IP packet
+Source IP: 192.168.2.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:02
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.2.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: de:ad:be:ef:00:02
+Processing IP packet
+Processing ARP packet
+ARP Packet has wrong destination
+Source IP: 192.168.3.2
+Dest IP: 192.168.1.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.1.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Source IP: 192.168.0.2
+Dest IP: 192.168.3.2
+Ok, processing IP packet
+MAC SOURCE: ca:fe:ba:be:00:01
+MAC destination: de:ad:be:ef:00:03
+Processing IP packet
+Source IP: 192.168.3.2
+Dest IP: 192.168.0.2
+Ok, processing IP packet
+MAC SOURCE: de:ad:be:ef:00:03
+MAC destination: ca:fe:ba:be:00:01
+Processing IP packet
+Processing ARP packet
+ARP Packet has wrong destination
