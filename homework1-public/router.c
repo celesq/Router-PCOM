@@ -168,6 +168,8 @@ void send_error_icmp (struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr, int ty
 
 	printf("Sent ICMP error type %d from %s to %s\n", type, inet_ntoa(*(struct in_addr *)&ip_hdr->source_addr), inet_ntoa(*(struct in_addr *)&ip_hdr->dest_addr));
 
+	free(aux);
+	free(buf);
 }
 
 
@@ -221,7 +223,6 @@ void send_icmp_echo_reply(struct ip_hdr *ip_hdr, struct ether_hdr *ether_hdr, in
 
 	send_to_link(sizeof(struct ether_hdr) + sizeof(struct ip_hdr) + icmp_len, buf, next->interface);
 
-	free(mac);
 	free(aux);
 	free(interface_mac);
 	free(buf);
@@ -488,15 +489,10 @@ int main(int argc, char *argv[])
 					struct icmp_hdr *icmp_hdr = (struct icmp_hdr *)((char *)ip_hdr + sizeof(struct ip_hdr));
 					if (icmp_hdr->mtype == 8) {
 						//echo request
-						//send_icmp_echo_reply(ip_hdr, ether_hdr, interface);
+						send_icmp_echo_reply(ip_hdr, ether_hdr, interface);
 						printf("Processing ICMP echo request\n");
 					}
-				} //else {
-				//	printf("Recieved ICMP that's not for me, dropping\n");
-				//	process_ip_packet(ip_hdr, ether_hdr);
-				//	continue;
-				//}
-				//continue;
+				}
 			} else {
 				process_ip_packet(ip_hdr, ether_hdr);
 				printf("Processing IP packet\n");
