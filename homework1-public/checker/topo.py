@@ -324,7 +324,6 @@ def validate_test_results(results):
 def should_skip(testname):
     if static_arp():
         return testname in {"aa"}
-
     return False
 
 

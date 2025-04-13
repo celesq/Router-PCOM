@@ -1,4 +1,0 @@
-  File "/home/rares/ANUL2/SEM2/PCOM/tema1/Router-PCOM/homework1-public/./checker/checker.py", line 38, in passive
-    status = fn(testname, packets)
-  File "/home/rares/ANUL2/SEM2/PCOM/tema1/Router-PCOM/homework1-public/checker/tests.py", line 257, in router_arp_request_p
-    assert ARP in packets[0], "No ARP request!"
