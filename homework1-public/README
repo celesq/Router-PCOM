@@ -1,0 +1,88 @@
+Celescu Rares Andrei - 322CA
+
+ Pentru procesul de dirijare am folosit tabela de rutare data in al doilea
+ argument dat, citind-o cu ajutorul API-ului din libC. Pentru tabela ARP,
+ am pornit cu ea neinitializata si cu lungime 0, iar, pe masura ce se trimit
+ pachete, se vor trimite ARP requesturi catre destinatiile cu adresele IP tinta.
+ In acest fel, tabela ARP se populeaza dinamic in timp ce se trimit pachetele
+ si astfel stim ca nu avem intrari nefolosite in tabela. Odata ce s-a populat
+ o intrare, daca se vrea a se trimite un pachet catre aceeasi adresa IP, se va
+ gasi in tabela ARP MAC-ul adresei respective.
+ 
+ In functia main, am gandit parsarea si inspectarea pachetului trimis, pentru
+ a se decide daca router-ul il va procesa sau il va arunca. Pentru un pachet
+ oarecare, am verificat daca cumva lungimea nu este mai mica decat cea standard
+ a unui pachet IP, in cazul respectiv aruncand. Apoi, am verifcat daca campul
+ din ether header este de tip IP sau ARP, in caz contrar aruncand. Parsand
+ pachetul, am obtinut headerele IP si Ethernet, in cazul unui pachet ARP
+ apeland functia de procesare ARP, in cazul unui pachet ICMP se verifica daca
+ este Echo Request si se apeleaza functia de ICMP Echo Reply, iar in cazul
+ unui pachet IP se proceseaza si se trimite mai departe.
+ 
+ In functia de procesare a pachetului IP, se verifica in ordine: checksumul,
+ in caz de eroare se abandoneaza pachetul, next_hopul(folosind algoritmul LPM),
+ in caz in care nu se gaseste se abandoneaza pachetul si se trimite un mesaj
+ ICMP de eroare de tip "Destination Unreachable", TTL-ul (in caz de eroare se
+ trimite un mesaj ICMP de tip "Time exceeded"). Daca toate aceste verificari
+ trec, se calculeaza checksum-ul, se trimite un ARP Request(daca e cazul)
+ pentru aflarea adresei MAC a next hopului, si se trimite pachetul mai departe.
+ 
+ Pentru implementarea eficienta a functiei Longest Prefix Match am folosit
+ un arbore de prefixe, deoarece fiecare prefix de maxim 32 de biti poate fi
+ codificat cu 0 si 1 in binar. De aceea fiecare nod are doar 2 copii ( 0 si 1).
+ Pentru crearea de noduri am folosit functia create_trie_node care creaza
+ generic un nod si initializeaza campurile.
+ Pentru inserarea prefixelor din tabelul de rutare am folosit functia
+ insert_table_in_trie. Pentru fiecare intrare din tabel, aflam prefixul,
+ masca si lungimea mastii (deoarece se doreste cea mai mare) cu functia 
+ builtin_popcount, iar apoi porneam din root si luam fiecare bit de la stanga
+ la dreapta, prin shiftare si AND cu 1, iar daca nu aveam un copil al nodului
+ curent corespunzator bitului respectiv il initializam si mergeam mai departe
+ cu nodul curent ca copilul initializat. In acest fel, stocam toate prefixele
+ in arbore.
+ Pentru cautare, am folosit functia search_in_trie care cauta din radacina cel
+ mai lung prefix, prin acelasi mod ca si la inserare. Se porneste din radacina
+ si se cauta pentru fiecare bit din ip daca exista intrare corespunzatoare in
+ arborele de prefixe, asa gasindu-se cea cu masca cea mai lunga. In cazul in
+ care nu se gaseste nimic, se returneaza NULL.
+ In acest fel, se reduce complexitatea de timp  semnificativ pentru cautarea 
+ destinatiei de la O(n) la O(32) (conform complexitatii arborelui de prefixe).
+ 
+ Pentru implementarea protocolului ARP am folosit 3 functii. Cea de trimitere
+ de ARP request ia pachetul IP, impreuna cu next hopul si introduce acest
+ pachet in coada de pachete, urmand ca apoi sa construiasca ARP requestul
+ dintr-un pachet ethernet cu destinatia BROADCAST_MAC(0xFF) si cu sursa
+ interfata next-ului si un pachet ARP cum IP-ul destinatie egal cu IP-ul
+ next hopului(pentru el vrem sa stim adresa MAC). Apoi, se va trimite requestul.
+ Cand un router detecteaza ca a primit un pachet de tip ARP, intra in functia
+ de procesare, verfiica ce tip de pachet a primit si il trateaza.
+ In cazul unui ARP request, verifica daca este pentru el (cu ajutorul functiei
+ is_for_router care verifica toate ip-urile interfetelor ruterului) si
+ construieste un arp reply pe care il va trimite inapoi de unde a primit. In
+ caz contrar nu face nimic.
+ Daca se primeste un pachet de tip ARP Reply,se verifica daca exista o intrare
+ in tabela ARP cu acel IP si o populeaza, in caz contrar se creaza o intrare
+ cu adresa IP si adresa MAC corespunzatoare reply-ului. Apoi, se scoate cate
+ un pachet din coada si se verifica daca este pachetul corespunzator arp reply-
+ ului care a venit, caz in care se continua trimiterea lui, doar ca acum cu
+ adresa MAC potrivita. In caz contrar, se reintroduce pachetul in coada.
+ 
+ In implementarea protocolului ICMP am folosit 2 functii, una de trimitere
+ de mesaj de eroare si una de Echo Reply.
+ In functia send_error_icmp, creez un nou pachet de tip icmp, salvez pachetul
+ original IP si construiesc noul pachet IP si Ethernet, inversand sursele cu
+ destinatiile si destinatiile cu sursele (vrem sa trimitem de unde am primit).
+ Apoi, setand pachetul IP corespuzator, construiesc un buffer in care pun 
+ headerele Ethernet, IP, ICMP si cei 20 de bytes din headerul original IP si
+ 8 de payload. Apoi refac checksum-ul pachetului ICMP si trimit pe interfata
+ pe care am si primit pachetul.
+ In functia de trimitere de Echo Reply, am operat similar, creeand un nou
+ pachet ICMP si modificand headerele IP si Ethernet si trimitand pe aceeasi
+ interfata pe care am primit pachetul modificat ICMP care cuprinde tot pachetul
+ IP si ICMP(inclusiv payload).
+ 
+ Pentru testare si verificarea temei am folosit Wireshark, Mininet, tcpdump si
+ checker-ul local, pus la dispozitie.
+ 
+ Tin sa mentionez ca am completat formularul de sleep days pe 12 aprilie, luand
+ un sleep day pentru aceasta tema.
